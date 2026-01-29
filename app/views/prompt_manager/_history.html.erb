@@ -1,0 +1,16 @@
+<%
+  active_uuid = locals[:active_uuid]
+  card_path = locals[:card_path]
+%>
+
+<h2>History</h2>
+<% if @history.present? %>
+  <div class="history-stack" data-controller="history">
+    <% @history.each_with_index do |ann, idx| %>
+      <%= render 'prompt_manager/history_card', locals: { ann: ann, next_ann: @history[idx + 1], is_active: ann.uuid == active_uuid, card_path: card_path } %>
+    <% end %>
+    <svg class="history-arrows" data-history-target="svg"></svg>
+  </div>
+<% else %>
+  <p class="history-empty">No history yet</p>
+<% end %>

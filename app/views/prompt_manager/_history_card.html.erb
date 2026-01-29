@@ -1,0 +1,18 @@
+<%
+  ann = locals[:ann]
+  next_ann = locals[:next_ann]
+  is_active = locals[:is_active]
+  parent_uuid = ann.parent&.uuid
+  card_path = locals[:card_path]
+%>
+
+<div class="history-card<%= ' is-active' if is_active %>" data-history-target="cards" data-uuid="<%= ann.uuid %>" data-parent-uuid="<%= parent_uuid %>">
+  <%= link_to card_path.call(ann.uuid), class: "history-card-link" do %>
+    <div class="history-card-prompt"><%= truncate(ann.content.to_s, length: 30) %></div>
+  <% end %>
+</div>
+
+<%# Check !next_ann.nil? to prevent the "↑" arrow from appearing below the bottom history entry, as parent_uuid would be nil in that case. %>
+<% if !next_ann.nil? && parent_uuid == next_ann.uuid %>
+  <div class="history-straight-arrow">↑</div>
+<% end %>
