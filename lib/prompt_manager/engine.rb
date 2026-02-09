@@ -12,6 +12,12 @@ module PromptManager
       end
     end
 
+    initializer "prompt_manager.controllers" do
+      ActiveSupport.on_load(:action_controller) do
+        include PromptManager::HistoryManageable
+      end
+    end
+
     # Configure asset paths for the engine
     # This ensures that JavaScript and CSS files are properly loaded
     initializer "prompt_manager.assets", before: "sprockets.environment" do |app|
