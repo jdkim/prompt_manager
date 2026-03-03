@@ -1,16 +1,22 @@
 # PromptNavigator
 
-Rails engine for managing prompt execution history with visual interface.
+A Rails engine for managing and visualizing LLM prompt execution history. It provides a visual history stack UI with interactive SVG arrow connections between parent-child prompt executions, enabling users to navigate conversation trees.
 
 ## Features
 
-- Visual history stack with parent-child relationships
-- Modern CSS with nested syntax
-- Stimulus-powered interactive arrows
-- Automatic asset pipeline integration
-- Active state highlighting
-- Responsive design with hover effects
-- Built-in model for tracking prompt executions
+- **PromptExecution model** - Self-referencing tree structure for tracking prompt executions with UUID identifiers
+- **Visual history stack** - Card-based UI displaying prompt history with parent-child relationships
+- **Arrow visualization** - Straight arrows (`↑`) for adjacent cards; curved SVG arrows (via Stimulus) for non-adjacent parent-child connections
+- **Active state highlighting** - Blue border and glow effect on the currently selected card
+- **Responsive design** - Hover effects with lift animation; arrows redraw on window resize
+- **Automatic integration** - Controller concern, view helpers, and assets are auto-registered by the engine
+- **Rails generator** - `prompt_navigator:modeling` generator for creating the required migration
+
+## Requirements
+
+- Ruby >= 3.2.0
+- Rails >= 8.1.2
+- Stimulus ([Hotwire](https://hotwired.dev/))
 
 ## Installation
 
@@ -33,21 +39,23 @@ $ rails generate prompt_navigator:modeling
 $ rails db:migrate
 ```
 
-This will create the `prompt_navigator_prompt_executions` table with the following fields:
+This creates the `prompt_navigator_prompt_executions` table with the following columns:
 
-- `execution_id` - Unique identifier (UUID) for each prompt execution
-- `prompt` - The prompt text
-- `llm_platform` - The LLM platform used (e.g., "openai", "anthropic")
-- `model` - The model name (e.g., "gpt-4", "claude-3")
-- `configuration` - Model configuration settings
-- `response` - The LLM response
-- `previous_id` - Reference to the parent execution (for history tree)
+| Column | Type | Description |
+|--------|------|-------------|
+| `execution_id` | string | Unique identifier (UUID), auto-generated on create |
+| `prompt` | text | The prompt text sent to the LLM |
+| `llm_platform` | string | The LLM platform (e.g., `"openai"`, `"anthropic"`) |
+| `model` | string | The model name (e.g., `"gpt-4"`, `"claude-3"`) |
+| `configuration` | string | Model configuration as JSON |
+| `response` | text | The LLM response text |
+| `previous_id` | integer | Foreign key to the parent execution (for building history tree) |
 
 ## Usage
 
-### Basic Setup
+### Layout Setup
 
-In your application's layout file (`app/views/layouts/application.html.erb`), make sure you have `<%= yield :head %>` in the `<head>` section:
+In your application layout (`app/views/layouts/application.html.erb`), add `<%= yield :head %>` in the `<head>` section to load the engine's stylesheets:
 
 ```erb
 <head>
@@ -62,38 +70,22 @@ In your application's layout file (`app/views/layouts/application.html.erb`), ma
 </head>
 ```
 
-Include the history partial in your view:
-
-```erb
-<%= render 'prompt_navigator/history', locals: { active_uuid: @current_execution_id, card_path: ->(execution_id) { my_path(execution_id) } } %>
-```
-
-### Asset Pipeline Configuration
-
-The engine automatically configures the asset pipeline to include:
-- `prompt_navigator/history.css` - Styles for the history component
-- `controllers/history_controller.js` - Stimulus controller for arrow drawing
-
-The assets are automatically precompiled and made available to your application. For Rails 7+ with importmap, the CSS will be loaded via `stylesheet_link_tag` when you render the history partial, and the Stimulus controller will be automatically registered.
-
 ### Controller Setup
 
-Include `HistoryManageable` concern in your controller:
+The `HistoryManageable` concern is automatically included in all controllers by the engine. It provides three methods:
+
+- `initialize_history(history)` - Sets the `@history` instance variable (converts to array)
+- `set_active_message_uuid(uuid)` - Sets the `@active_message_uuid` instance variable
+- `push_to_history(new_state)` - Appends a new state to `@history`
 
 ```ruby
 class MyController < ApplicationController
-  include HistoryManageable
-
   def index
-    # Initialize history with prompt executions
     initialize_history(PromptNavigator::PromptExecution.all)
-
-    # Set the active execution ID (optional)
     set_active_message_uuid(params[:execution_id])
   end
 
   def create
-    # Add new execution to history
     new_execution = PromptNavigator::PromptExecution.create(
       prompt: params[:prompt],
       llm_platform: "openai",
@@ -107,56 +99,91 @@ class MyController < ApplicationController
 end
 ```
 
-### Using PromptExecution Model
+### Rendering the History Component
 
-The `PromptNavigator::PromptExecution` model has the following attributes and methods:
-
-```ruby
-execution = PromptNavigator::PromptExecution.create(
-  prompt: "Your prompt text",
-  llm_platform: "openai",
-  model: "gpt-4",
-  configuration: "{\"temperature\": 0.7}",
-  response: "LLM response text",
-  previous: parent_execution  # Optional: for building history tree
-)
-
-# Access fields
-execution.execution_id  # UUID, automatically generated
-execution.prompt        # The prompt text
-execution.llm_platform  # LLM platform used
-execution.model         # Model name
-execution.configuration # Configuration JSON
-execution.response      # LLM response
-execution.previous      # Parent execution (belongs_to association)
-```
-
-### Using the Helper Method
-
-The helper methods are automatically included in your views. You can use the `history_list` helper:
+The `history_list` helper is automatically available in all views. It renders the history stack:
 
 ```erb
-<%= history_list(->(execution_id) { my_item_path(execution_id) }, active_uuid: @current_execution_id) %>
+<%= history_list(
+  ->(execution_id) { my_item_path(execution_id) },
+  active_uuid: @active_message_uuid
+) %>
 ```
 
-### Customizing the Card Path
+Parameters:
 
-The `card_path` parameter should be a callable (Proc or lambda) that takes an execution_id and returns a path:
+- `card_path` (first argument) - A Proc/Lambda that takes an `execution_id` and returns a URL path for the card link
+- `active_uuid:` - The `execution_id` of the currently active card (highlighted with blue border)
+
+Alternatively, you can render the partial directly:
 
 ```erb
-<%= render 'prompt_navigator/history',
+<%= render "prompt_navigator/history",
     locals: {
-      active_uuid: @current_execution_id,
+      active_uuid: @active_message_uuid,
       card_path: ->(execution_id) { my_item_path(execution_id) }
     }
 %>
 ```
 
-Or using the helper:
+### PromptExecution Model
 
-```erb
-<%= history_list(->(execution_id) { my_item_path(execution_id) }, active_uuid: @current_execution_id) %>
+The `PromptNavigator::PromptExecution` model stores prompt execution records with a self-referencing association for building conversation trees:
+
+```ruby
+# Create an execution
+execution = PromptNavigator::PromptExecution.create(
+  prompt: "Explain Ruby blocks",
+  llm_platform: "openai",
+  model: "gpt-4",
+  configuration: '{"temperature": 0.7}',
+  response: "Ruby blocks are..."
+)
+
+# Create a follow-up execution linked to the parent
+follow_up = PromptNavigator::PromptExecution.create(
+  prompt: "Give me an example",
+  llm_platform: "openai",
+  model: "gpt-4",
+  response: "Here is an example...",
+  previous: execution  # Sets previous_id to link as child
+)
+
+# Access attributes
+execution.execution_id  # => "a1b2c3d4-..." (auto-generated UUID)
+execution.previous      # => nil (root execution)
+follow_up.previous      # => execution (parent)
 ```
+
+## Architecture
+
+```
+PromptNavigator (Rails Engine)
+├── Model
+│   └── PromptExecution         # Self-referencing tree model with UUID
+├── Controller Concern
+│   └── HistoryManageable       # Provides initialize_history, set_active_message_uuid, push_to_history
+├── View Helper
+│   └── Helpers#history_list    # Renders the history partial
+├── Partials
+│   ├── _history.html.erb       # Main container with Stimulus controller
+│   └── _history_card.html.erb  # Individual card with link and arrow logic
+├── JavaScript
+│   └── history_controller.js   # Stimulus controller for SVG curved arrows
+├── Stylesheets
+│   └── history.css             # Modern nested CSS for cards, arrows, hover effects
+└── Generator
+    └── modeling                # Creates migration for prompt_executions table
+```
+
+### Arrow Visualization
+
+The history component uses two types of arrows to show parent-child relationships:
+
+1. **Straight arrows** (`↑`) - Rendered as HTML when a card's parent is the immediately adjacent card above it
+2. **Curved SVG arrows** - Drawn by the Stimulus controller (`history_controller.js`) when a card's parent is further away (vertical gap >= 80px). These bezier curves arc to the left of the stack
+
+The Stimulus controller automatically redraws SVG arrows on window resize.
 
 ## Troubleshooting
 
@@ -168,43 +195,40 @@ Make sure you have `<%= yield :head %>` in your application layout's `<head>` se
 
 The arrow visualization requires:
 1. Stimulus to be properly configured in your application
-2. The `history_controller.js` to be loaded (automatic with importmap)
-3. Parent-child relationships to be properly set using the `previous` association in your PromptExecution records
+2. The `history_controller.js` to be loaded (automatic with the asset pipeline)
+3. Parent-child relationships to be set using the `previous` association on PromptExecution records
 
 ### History not displaying
 
 Ensure that:
-1. `@history` instance variable is set in your controller using `initialize_history`
-2. Your PromptExecution records have `execution_id` values (automatically generated on create)
-3. The `card_path` callable is correctly defined and returns valid paths
+1. `@history` is set in your controller using `initialize_history`
+2. PromptExecution records have `execution_id` values (automatically generated on create)
+3. The `card_path` callable returns valid paths
 
-## Requirements
+## Development
 
-- Rails >= 8.1.2
-- Stimulus (Hotwired)
-
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem "prompt_navigator"
-```
-
-And then execute:
+After checking out the repo, run:
 
 ```bash
-$ bundle
+$ bundle install
 ```
 
-Or install it yourself as:
+Run the tests:
 
 ```bash
-$ gem install prompt_navigator
+$ bin/rails test
+```
+
+Run the linter:
+
+```bash
+$ bundle exec rubocop
 ```
 
 ## Contributing
-Contribution directions go here.
+
+Bug reports and pull requests are welcome on [GitHub](https://github.com/dhq-boiler/prompt_manager).
 
 ## License
+
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
