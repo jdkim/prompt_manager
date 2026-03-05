@@ -81,7 +81,8 @@ The `HistoryManageable` concern is automatically included in all controllers by 
 ```ruby
 class MyController < ApplicationController
   def index
-    initialize_history(PromptNavigator::PromptExecution.all)
+    # History must be ordered newest-first for arrow visualization to work correctly
+    initialize_history(PromptNavigator::PromptExecution.order(id: :desc))
     set_active_message_uuid(params[:execution_id])
   end
 
@@ -180,8 +181,10 @@ PromptNavigator (Rails Engine)
 
 The history component uses two types of arrows to show parent-child relationships:
 
-1. **Straight arrows** (`↑`) - Rendered as HTML when a card's parent is the immediately adjacent card above it
+1. **Straight arrows** (`↑`) - Rendered as HTML when a card's parent is the immediately adjacent card below it in the list
 2. **Curved SVG arrows** - Drawn by the Stimulus controller (`history_controller.js`) when a card's parent is further away (vertical gap >= 80px). These bezier curves arc to the left of the stack
+
+**Note:** Arrow visualization requires the history to be ordered newest-first (e.g., `order(id: :desc)`). If the history is in ascending order, parent-child adjacency detection will not work correctly.
 
 The Stimulus controller automatically redraws SVG arrows on window resize.
 
