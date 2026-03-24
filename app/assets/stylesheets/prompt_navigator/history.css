@@ -53,6 +53,23 @@
     -webkit-box-orient: vertical;
 }
 
+.history-card-platform-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 28px;
+    text-align: center;
+
+    &[data-platform="openai"] { color: #10a37f; background: rgba(16, 163, 127, 0.1); }
+    &[data-platform="anthropic"] { color: #c4956e; background: rgba(212, 162, 127, 0.12); }
+    &[data-platform="google"] { color: #4285f4; background: rgba(66, 133, 244, 0.1); }
+    &[data-platform="ollama"] { color: #555; background: rgba(0, 0, 0, 0.06); }
+}
+
 .history-arrows {
     position: absolute;
     top: 0;
