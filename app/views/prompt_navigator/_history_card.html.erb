@@ -9,6 +9,9 @@
 <div class="history-card<%= ' is-active' if is_active %>" data-history-target="cards" data-uuid="<%= ann.execution_id %>" data-parent-uuid="<%= parent_uuid %>">
   <%= link_to card_path.call(ann.execution_id), class: "history-card-link" do %>
     <div class="history-card-prompt"><%= truncate(ann.prompt.to_s, length: 30) %></div>
+    <% if ann.llm_platform.present? %>
+      <%= image_tag "prompt_navigator/#{ann.llm_platform}.svg", class: "history-card-platform-icon", alt: ann.llm_platform %>
+    <% end %>
   <% end %>
 </div>
 
