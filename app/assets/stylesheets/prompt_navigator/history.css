@@ -53,6 +53,18 @@
     -webkit-box-orient: vertical;
 }
 
+.history-card-platform-label {
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: auto;
+    flex-shrink: 0;
+
+    &[data-platform="openai"] { color: #10a37f; }
+    &[data-platform="anthropic"] { color: #d4a27f; }
+    &[data-platform="google"] { color: #4285f4; }
+    &[data-platform="ollama"] { color: #1a1a1a; }
+}
+
 .history-arrows {
     position: absolute;
     top: 0;
