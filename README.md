@@ -14,7 +14,7 @@ A Rails engine for managing and visualizing LLM prompt execution history. It pro
 
 ## Requirements
 
-- Ruby >= 3.2.0
+- Ruby >= 3.4.9
 - Rails >= 8.1.2
 - Stimulus ([Hotwire](https://hotwired.dev/))
 
