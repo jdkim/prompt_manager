@@ -9,3 +9,6 @@
 /test/dummy/storage/
 /test/dummy/tmp/
 .idea/
+
+# vim backup files
+*~
