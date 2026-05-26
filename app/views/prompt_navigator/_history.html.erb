@@ -1,13 +1,16 @@
 <%
   active_uuid = locals[:active_uuid]
   card_path = locals[:card_path]
+  delete_path = locals[:delete_path]
+  # A PE is a leaf when no other PE in the chat references it as `previous`.
+  non_leaf_ids = @history.filter_map { |pe| pe.previous_id }
 %>
 
 <h2>History</h2>
 <% if @history.present? %>
   <div class="history-stack" data-controller="history">
     <% @history.each_with_index do |ann, idx| %>
-      <%= render 'prompt_navigator/history_card', locals: { ann: ann, next_ann: @history[idx + 1], is_active: ann.execution_id == active_uuid, card_path: card_path } %>
+      <%= render 'prompt_navigator/history_card', locals: { ann: ann, next_ann: @history[idx + 1], is_active: ann.execution_id == active_uuid, card_path: card_path, delete_path: delete_path, is_leaf: !non_leaf_ids.include?(ann.id) } %>
     <% end %>
     <svg class="history-arrows" data-history-target="svg"></svg>
   </div>
