@@ -24,7 +24,9 @@
       <% end %>
     <% end %>
     <% if ann.llm_platform.present? %>
-      <span class="history-card-platform-label" data-platform="<%= ann.llm_platform %>"><%= { "openai" => "GPT", "anthropic" => "A", "google" => "G", "ollama" => "O" }[ann.llm_platform] || ann.llm_platform %></span>
+      <% platform_label = { "openai" => "GPT", "anthropic" => "A", "google" => "G", "ollama" => "O" }[ann.llm_platform] || ann.llm_platform %>
+      <% tooltip = ann.model.present? ? "#{ann.model} (#{ann.llm_platform})" : ann.llm_platform.to_s %>
+      <span class="history-card-platform-label" data-platform="<%= ann.llm_platform %>" title="<%= tooltip %>"><%= platform_label %></span>
     <% end %>
   </div>
 </div>

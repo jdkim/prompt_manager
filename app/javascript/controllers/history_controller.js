@@ -8,7 +8,13 @@ export default class extends Controller {
     #drawArrowsBound
     #markerId = "history-arrow-head"
     #startX = 32
-    #curveOffset = 40
+    // Curve offset scales with the vertical gap so arcs of different lengths
+    // nest instead of overlap. Bounded so short arcs don't collapse onto the
+    // stack and long arcs don't escape the sidebar pane (the stack only has
+    // `padding-left: 32px` of space before the chat area).
+    #minCurveOffset = 12
+    #maxCurveOffset = 28
+    #curveScale = 0.22
 
     connect() {
         this.#drawArrows()
@@ -102,13 +108,17 @@ export default class extends Controller {
         // Skip if cards are adjacent - straight arrow is rendered by helper
         if (verticalGap < 80) return
 
-        const path = this.#createCurvedArrowPath(startY, endY)
+        const path = this.#createCurvedArrowPath(startY, endY, verticalGap)
         svg.appendChild(path)
     }
 
-    #createCurvedArrowPath(startY, endY) {
+    #createCurvedArrowPath(startY, endY, verticalGap) {
         const startX = this.#startX // left edge margin
-        const curveX = startX - this.#curveOffset // curve outward to the left
+        const curveOffset = Math.max(
+            this.#minCurveOffset,
+            Math.min(verticalGap * this.#curveScale, this.#maxCurveOffset)
+        )
+        const curveX = startX - curveOffset // curve outward to the left
         const pathData = `M ${startX} ${startY} C ${curveX} ${startY}, ${curveX} ${endY}, ${startX} ${endY}`
 
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
