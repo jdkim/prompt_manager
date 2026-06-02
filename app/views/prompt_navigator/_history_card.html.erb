@@ -8,10 +8,16 @@
   is_leaf = locals[:is_leaf]
 %>
 
+<%
+  # Hide leading attached-image data URIs (`![](data:image/png;base64,…)`).
+  # The base64 blob isn't useful in a 30-char preview — replace each with a
+  # short marker so the rest of the prompt text is visible.
+  display_prompt = ann.prompt.to_s.gsub(/!\[[^\]]*\]\(data:[^)]+\)/m, "[image]").strip
+%>
 <div class="history-card<%= ' is-active' if is_active %>" data-history-target="cards" data-uuid="<%= ann.execution_id %>" data-parent-uuid="<%= parent_uuid %>">
   <div class="history-card-row">
     <%= link_to card_path.call(ann.execution_id), class: "history-card-link" do %>
-      <div class="history-card-prompt"><%= truncate(ann.prompt.to_s, length: 30) %></div>
+      <div class="history-card-prompt"><%= truncate(display_prompt, length: 30) %></div>
     <% end %>
     <% if is_leaf && delete_path %>
       <%= button_to delete_path.call(ann.execution_id),
