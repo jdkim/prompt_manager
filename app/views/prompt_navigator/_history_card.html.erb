@@ -7,10 +7,14 @@
   delete_path = locals[:delete_path]
   is_leaf = locals[:is_leaf]
 
-  # Hide leading attached-image data URIs (`![](data:image/png;base64,…)`).
-  # The base64 blob isn't useful in a 30-char preview — replace each with a
-  # short marker so the rest of the prompt text is visible.
-  display_prompt = ann.prompt.to_s.gsub(/!\[[^\]]*\]\(data:[^)]+\)/m, "[image]").strip
+  # Hide attached-file data URIs so the base64 blob doesn't dominate the
+  # 30-char preview. Images use `![alt](data:…)` and get replaced with `[image]`;
+  # documents use `[filename](data:…)` and get replaced with `[filename]`
+  # (or `[document]` if the filename slot is empty).
+  display_prompt = ann.prompt.to_s
+                     .gsub(/!\[[^\]]*\]\(data:[^)]+\)/m, "[image]")
+                     .gsub(/(?<!!)\[([^\]]*)\]\(data:[^)]+\)/m) { "[#{Regexp.last_match(1).presence || 'document'}]" }
+                     .strip
 %>
 
 <div class="history-card<%= ' is-active' if is_active %>" data-history-target="cards" data-uuid="<%= ann.execution_id %>" data-parent-uuid="<%= parent_uuid %>">

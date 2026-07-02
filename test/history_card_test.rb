@@ -47,4 +47,47 @@ class HistoryCardArrowTest < ActionView::TestCase
     assert_not_includes out, "↑"
     assert_not_includes out, "↓"
   end
+
+  # ----- preview-stripping of attached-file data URIs -----
+
+  test "strips leading image data URI in the preview and replaces with [image]" do
+    pe = PromptNavigator::PromptExecution.create!(
+      prompt: "![](data:image/png;base64,AAAAAAAAAAAA)describe this",
+      response: "r"
+    )
+    out = render_card(ann: pe, next_ann: nil)
+    assert_includes out, "[image]describe this"
+    assert_not_includes out, "AAAAAAAAAAAA"
+  end
+
+  test "strips leading document data URI and shows the filename in brackets" do
+    pe = PromptNavigator::PromptExecution.create!(
+      prompt: "[report.pdf](data:application/pdf;base64,JVBERi0xLjQ)summarize this",
+      response: "r"
+    )
+    out = render_card(ann: pe, next_ann: nil)
+    assert_includes out, "[report.pdf]summarize this"
+    assert_not_includes out, "JVBERi0xLjQ"
+  end
+
+  test "falls back to [document] when the doc data URI has an empty filename" do
+    pe = PromptNavigator::PromptExecution.create!(
+      prompt: "[](data:text/plain;base64,QQ==)what is it",
+      response: "r"
+    )
+    out = render_card(ann: pe, next_ann: nil)
+    assert_includes out, "[document]what is it"
+  end
+
+  test "does NOT strip a regular markdown link (non-data URI) in the preview" do
+    pe = PromptNavigator::PromptExecution.create!(
+      prompt: "see [my-docs](https://example.org/foo)",
+      response: "r"
+    )
+    out = render_card(ann: pe, next_ann: nil)
+    # The 30-char preview cap will truncate the URL — the key point is that
+    # the link syntax is NOT rewritten (which the data-URI strip would do).
+    assert_includes out, "see [my-docs]("
+    assert_not_includes out, "[document]"
+  end
 end
