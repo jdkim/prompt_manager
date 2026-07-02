@@ -18,8 +18,20 @@ export default class extends Controller {
 
     connect() {
         this.#drawArrows()
+        this.#scrollActiveCardIntoView()
         this.#drawArrowsBound = this.#drawArrows.bind(this)
         window.addEventListener("resize", this.#drawArrowsBound)
+    }
+
+    // If the currently-selected history card would be scrolled off-screen
+    // (short viewport, long history), bring it into view. `block: "nearest"`
+    // is a no-op when the card is already visible, so this only jumps when
+    // needed. Runs on `connect()`, which fires on initial mount AND after
+    // Turbo replaces the sidebar (post-stream / branch / rename).
+    #scrollActiveCardIntoView() {
+        const activeCard = this.element.querySelector(".history-card.is-active")
+        if (!activeCard) return
+        activeCard.scrollIntoView({ block: "nearest", inline: "nearest" })
     }
 
     disconnect() {
